@@ -1,5 +1,7 @@
 __authors__ = "Bc. Tomáš Koštrna, Ing. Pavol Marák, PhD."
 
+from pathlib import Path
+from utils import bbgt2yolo
 from ultralytics import YOLO
 import cv2
 
@@ -32,5 +34,6 @@ def train_model_on_images(data: str, test_img: str):
 
 
 if __name__ == "__main__":
-    train_model_on_images(data="datasets/exdark",
-                          test_img="https://ultralytics.com/images/bus.jpg")
+    bbgt2yolo(Path("datasets/exdark"), Path("datasets/exdark-yolo"))
+    # train_model_on_images(data="datasets/exdark",
+    #                      test_img="https://ultralytics.com/images/bus.jpg")
