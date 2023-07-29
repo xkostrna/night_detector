@@ -77,3 +77,7 @@ def bbgt2yolo(bbgt_pth: Path, yolo_pth: Path) -> None:
     for dir_id, (image_dir, label_dir) in enumerate(zip(images_pth.iterdir(), labels_pth.iterdir())):
         for img_id, (image_pth, label_pth) in enumerate(zip(image_dir.iterdir(), label_dir.iterdir())):
             bbgt2yolo_format(image_pth, label_pth, img_classes, yolo_pth, dir_id, img_id)
+
+
+if __name__ == "__main__":
+    bbgt2yolo(Path("datasets/exdark"), Path("datasets/exdark-yolo"))
