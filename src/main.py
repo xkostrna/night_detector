@@ -4,7 +4,7 @@ from pathlib import Path
 from ultralytics import YOLO
 import cv2
 
-model = YOLO("F:/School/Ing/DIPLOMA/night_detector/runs/detect/train6-exdark-all/weights/best.pt")
+model = YOLO("yolov8x.pt")
 DEFAULT_DATA = "coco128.yaml"
 
 
