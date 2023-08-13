@@ -66,14 +66,11 @@ def bbgt2yolo_format(image_pth: Path, label_pth: Path, img_classes: dict[str:int
                      bboxes=bboxes)
 
 
-def exdark2yolo(bbgt_pth: Path, yolo_pth: Path) -> None:
-    """Transform bbgt labels format to yolo format.
-
-    usage: bbgt2yolo(Path("datasets/exdark"), Path("datasets/exdark-yolo"))
-    """
+def exdark2yolo(exdark_pth: Path, yolo_pth: Path) -> None:
+    """Transform bbgt labels format to yolo format."""
     img_classes: dict[str:int] = {}
-    images_pth = bbgt_pth / 'images'
-    labels_pth = bbgt_pth / 'labels'
+    images_pth = exdark_pth / 'images'
+    labels_pth = exdark_pth / 'labels'
 
     for class_id, class_dir in enumerate(images_pth.iterdir()):
         img_classes[class_dir.name] = class_id
@@ -90,5 +87,5 @@ def dump_yolo_bboxes(label_pth: Path, class_ids: list[int], bboxes: list[tuple])
 
 
 if __name__ == "__main__":
-    exdark2yolo(bbgt_pth=Path("../datasets/exdark"),
+    exdark2yolo(exdark_pth=Path("../datasets/exdark"),
                 yolo_pth=Path("../datasets/exdark-yolo"))
