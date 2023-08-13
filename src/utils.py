@@ -18,8 +18,7 @@ def parse_bbgt_line(line: str) -> tuple[str, int, int, int, int]:
     h - height of bounding box
     """
     class_name, left, top, width, height = line.split(' ')[:5]  # only first 5 items are important
-    left, top, width, height = int(left), int(top), int(width), int(height)
-    return class_name, left, top, width, height
+    return class_name, int(left), int(top), int(width), int(height)
 
 
 def rescale_bbox(bbox: tuple, vsf: float, hsf: float) -> Union[tuple, None]:
