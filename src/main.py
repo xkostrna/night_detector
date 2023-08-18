@@ -4,7 +4,7 @@ from pathlib import Path
 from ultralytics import YOLO
 import cv2
 
-model = YOLO("yolov8x.pt")
+model = YOLO("yolov8n.pt")
 DEFAULT_DATA = "coco128.yaml"
 
 
@@ -26,19 +26,16 @@ def test_model(dataset_pth: Path, num_img: int):
         cv2.waitKey()
 
 
-def train_model_on_images(data: str, name: str):
+def train_model_on_images(data: Path, name: str = ''):
     global model
     model.train(data=data,
-                epochs=10,
-                batch=16,
-                nbs=16,
+                epochs=50,
+                batch=32,
+                nbs=32,
                 workers=1,
-                lr0=0.001,
-                lrf=0.01,
                 amp=False,
                 device=0,
-                patience=5,
-                name=name,
+                # name=name,
                 imgsz=416)
     metrics = model.val()
     path = model.export(format="onnx")
@@ -46,8 +43,10 @@ def train_model_on_images(data: str, name: str):
     print(f"Model exported to : {path}")
 
 
+def main():
+    data_pth = Path("F:/School/Ing/DIPLOMA/night_detector/datasets/exdark-yolo/exdark-yolo-green/data.yaml")
+    train_model_on_images(data=data_pth)
+
+
 if __name__ == "__main__":
-    # train_model_on_images(data="F:/School/Ing/DIPLOMA/night_detector/datasets/exdark-yolo/exdark-yolo-all/data.yaml",
-    #                      name="ex-dark-multiparams")
-    test_model(dataset_pth=Path("F:/School/Ing/DIPLOMA/night_detector/datasets/vrakuna/resized"),
-               num_img=10)
+    main()

@@ -2,11 +2,25 @@ from pathlib import Path
 from shutil import copy
 from typing import Union
 
+import numpy
 from cv2 import imread, imwrite
 import albumentations
 
 from visualize import visualize_yolo_bboxes
-from src.utils import dump_yolo_bboxes
+from src.utils import dump_yolo_bboxes, get_yolo_labels
+
+TRANSFORMATOR = albumentations.Compose(transforms=[albumentations.HorizontalFlip(p=0.5),
+                                                   albumentations.ShiftScaleRotate(p=0.5),
+                                                   albumentations.RGBShift(r_shift_limit=30,
+                                                                           g_shift_limit=30,
+                                                                           b_shift_limit=30, p=0.3)],
+                                       bbox_params=albumentations.BboxParams(format='yolo',
+                                                                             label_fields=['category_ids']))
+
+TRANSFORMATOR_2 = albumentations.Compose(transforms=[albumentations.VerticalFlip(p=0.5),
+                                                     albumentations.ShiftScaleRotate(p=0.5)],
+                                         bbox_params=albumentations.BboxParams(format='yolo',
+                                                                               label_fields=['category_ids']))
 
 
 def create_dataset_by_exdark(exdark_pth: Path,
@@ -54,8 +68,7 @@ def filter_yolo_classes(label_pth: Path, class_filter: Union[list[int], None] = 
 
     class_ids, bboxes = [], []
 
-    lines = label_pth.open(mode='r', encoding='utf-8').readlines()
-    for line in lines:
+    for line in label_pth.open(mode='r', encoding='utf-8').readlines():
         parts = line.strip().split(' ')
         class_id, *bbox = parts
         class_id = int(class_id)
@@ -70,56 +83,45 @@ def filter_yolo_classes(label_pth: Path, class_filter: Union[list[int], None] = 
     return True
 
 
-def augment_dataset(dataset_path: Path, category_id_to_name: dict[int, str]):
-    target_path = Path("F:/School/Ing/DIPLOMA/night_detector/datasets/exdark-yolo/exdark-yolo-green/augment-test")
-    target_imgs = target_path / 'images'
-    target_labels = target_path / 'labels'
+def augment_image(image_pth: Path, label_pth: Path) -> (numpy.ndarray, list[int], list):
+    global TRANSFORMATOR, TRANSFORMATOR_2
+    image = imread(str(image_pth))
+    class_ids, bboxes = get_yolo_labels(label_pth=label_pth)
+    transformed = TRANSFORMATOR_2(image=image, bboxes=bboxes, category_ids=class_ids)
+    return transformed['image'], class_ids, transformed['bboxes']
 
+
+def augment_yolo_dataset(dataset_path: Path) -> None:
+    images, labels = [], []
     for image_set in dataset_path.iterdir():
         if not image_set.is_dir():
             continue
+        for image, label in zip((image_set / 'images').iterdir(), (image_set / 'labels').iterdir()):
+            images.append(image)
+            labels.append(label)
 
-        images_pth = image_set / 'images'
-        labels_pth = image_set / 'labels'
-
-        transform = albumentations.Compose([
-            albumentations.HorizontalFlip(p=0.5),
-            albumentations.ShiftScaleRotate(p=0.5),
-            albumentations.RGBShift(r_shift_limit=30, g_shift_limit=30, b_shift_limit=30, p=0.3),
-        ],
-            bbox_params=albumentations.BboxParams(format='yolo', label_fields=['category_ids']),
-        )
-
-        for i, (img, label) in enumerate(zip(images_pth.iterdir(), labels_pth.iterdir())):
-            lines = label.open(mode='r', encoding='utf-8').readlines()
-            category_ids = []
-            bboxes = []
-            image = imread(str(img))
-            for line in lines:
-                parts = line.strip().split(' ')
-                category_ids.append(int(parts[0]))
-                bboxes.append([float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4])])
-
-            transformed = transform(image=image, bboxes=bboxes, category_ids=category_ids)
-            print(fr'{target_imgs}\{i}.jpg')
-            imwrite(filename=str(fr'{target_imgs}\{i}.jpg'), img=transformed['image'])
-            target_label = target_labels / f'{i}.txt'
-            # with target_label.open(mode='w', encoding='utf-8') as target:
-            dump_yolo_bboxes(target_label, category_ids, transformed['bboxes'])
-            for category_id, bbox in zip(category_ids, transformed['bboxes']):
-                # target.write(cat)
-                print(str(bbox))
-            # target_label.open(mode='w', encoding='utf-8').writelines(bboxes)
-            print(i, img, label)
-            exit(-1)
+    dataset_size = len(images)
+    for idx, (img_pth, label_pth) in enumerate(zip(images, labels)):
+        try:
+            image, class_ids, bboxes = augment_image(img_pth, label_pth)
+            new_image_pth = img_pth.with_name(f'{dataset_size + idx}.jpg')
+            new_label_pth = label_pth.with_name(f'{dataset_size + idx}.txt')
+            imwrite(filename=str(new_image_pth), img=image)
+            dump_yolo_bboxes(new_label_pth, class_ids, bboxes)
+        except ValueError as e:
+            print(f'[AUGMENTATION ERROR] {e}')
+            continue
 
 
 def main():
-    class_filter = [2, 4, 6, 7]
-    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark-yolo'),
-                             dest_pth=Path('../../datasets/exdark-yolo/exdark-yolo-green'),
-                             class_list_pth=Path('imageclasslist.txt'),
-                             class_filter=class_filter)
+    # class_filter = [2, 4, 6, 7]
+    # create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark-yolo'),
+    #                          dest_pth=Path('../../datasets/exdark-yolo/exdark-yolo-green'),
+    #                          class_list_pth=Path('imageclasslist.txt'),
+    #                          class_filter=class_filter)
+    # augment_image(Path('../../datasets/exdark-yolo/exdark-yolo-green/train/images/2015_00002.png'),
+    #               Path('../../datasets/exdark-yolo/exdark-yolo-green/train/labels/2015_00002.txt'))
+    augment_yolo_dataset(Path('../../datasets/exdark-yolo/exdark-yolo-green'))
 
 
 if __name__ == "__main__":

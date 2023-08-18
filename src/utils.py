@@ -21,6 +21,17 @@ def parse_bbgt_line(line: str) -> tuple[str, int, int, int, int]:
     return class_name, int(left), int(top), int(width), int(height)
 
 
+def get_yolo_labels(label_pth: Path) -> (list[int], list[list[float]]):
+    """Parses yolo labels from file provided into class ids and bboxes."""
+    class_ids, bboxes = [], []
+    for line in label_pth.open(mode='r', encoding='utf-8').readlines():
+        parts = line.strip().split(' ')
+        class_id, *bbox = parts
+        class_ids.append(int(class_id))
+        bboxes.append([float(num) for num in bbox])
+    return class_ids, bboxes
+
+
 def rescale_bbox(bbox: tuple, vsf: float, hsf: float) -> Union[tuple, None]:
     """Rescales bbox using vsf and hsf and return's new bbox.
 
@@ -28,6 +39,7 @@ def rescale_bbox(bbox: tuple, vsf: float, hsf: float) -> Union[tuple, None]:
     @param vsf vertical scale factor
     @param hsf horizontal scale factor
     """
+    global BBOX_SIZE
     if len(bbox) != BBOX_SIZE:
         return None
     left, top, orig_width, orig_height = bbox
@@ -40,6 +52,7 @@ def rescale_bbox(bbox: tuple, vsf: float, hsf: float) -> Union[tuple, None]:
 
 def bbgt2yolo_format(image_pth: Path, label_pth: Path, img_classes: dict[str:int], yolo_pth: Path) -> None:
     """Transform bbgt label format to yolo format."""
+    global YOLO_SIZE
     img = cv2.imread(str(image_pth))
     vertical_scale_factor = YOLO_SIZE / img.shape[0]  # height
     horizontal_scale_factor = YOLO_SIZE / img.shape[1]  # width
@@ -86,5 +99,6 @@ def dump_yolo_bboxes(label_pth: Path, class_ids: list[int], bboxes: list[tuple])
 
 
 if __name__ == "__main__":
-    exdark2yolo(exdark_pth=Path("../datasets/exdark"),
-                yolo_pth=Path("../datasets/exdark-yolo"))
+    # exdark2yolo(exdark_pth=Path("../datasets/exdark"),
+    #              yolo_pth=Path("../datasets/exdark-yolo"))
+    get_yolo_labels(Path('../datasets/exdark-yolo/exdark-yolo-green/train/labels/2015_00074.txt'))
