@@ -48,24 +48,27 @@ def create_dataset_by_exdark(exdark_pth: Path,
         img_pth = images / parts[0]
         label_pth = (labels / parts[0]).with_suffix('.txt')
 
-        can_be_copied = filter_yolo_classes(label_pth, class_filter)
-        if not can_be_copied:
+        dest = img_to_set[int(parts[4])]
+
+        if not class_filter:
+            copy(img_pth, dest / 'images')
+            copy(label_pth, dest / 'labels')
             continue
 
-        dest = img_to_set[int(parts[4])]
-        copy(img_pth, dest / 'images')
-        copy(label_pth, dest / 'labels')
+        class_ids, bboxes = filter_yolo_classes(label_pth, class_filter)
+        if (class_ids, bboxes) != (-1, -1):
+            copy(img_pth, dest / 'images')
+            dump_yolo_bboxes(label_pth=dest / 'labels' / label_pth.name,
+                             class_ids=class_ids,
+                             bboxes=bboxes)
 
 
-def filter_yolo_classes(label_pth: Path, class_filter: Union[list[int], None] = None) -> bool:
+def filter_yolo_classes(label_pth: Path, class_filter: list[int]) -> tuple:
     """Class filtering from annotations file.
 
     Deletes lines starting with id not found in class_filter, if id is found then its swapped by position
     because yolo needs class ids to start from 0
     """
-    if not class_filter:
-        return True
-
     class_ids, bboxes = [], []
 
     for line in label_pth.open(mode='r', encoding='utf-8').readlines():
@@ -77,10 +80,9 @@ def filter_yolo_classes(label_pth: Path, class_filter: Union[list[int], None] = 
             bboxes.append(bbox)
 
     if len(class_ids) == 0 or len(bboxes) == 0:
-        return False
+        return -1, -1
 
-    dump_yolo_bboxes(label_pth=label_pth, class_ids=class_ids, bboxes=bboxes)
-    return True
+    return class_ids, bboxes
 
 
 def augment_image(image_pth: Path, label_pth: Path) -> (numpy.ndarray, list[int], list):
@@ -110,15 +112,15 @@ def augment_yolo_dataset(dataset_path: Path) -> None:
 
 
 def main():
-    # class_filter = [4]
-    # create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark-yolo'),
-    #                          dest_pth=Path('../../datasets/exdark-yolo/exdark-yolo-caronly'),
-    #                          class_list_pth=Path('imageclasslist.txt'),
-    #                          class_filter=class_filter)
+    class_filter = [4]
+    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark-yolo'),
+                             dest_pth=Path('../../datasets/exdark-yolo/exdark-yolo-caronly'),
+                             class_list_pth=Path('imageclasslist.txt'),
+                             class_filter=class_filter)
 
     # augment_image(Path('../../datasets/exdark-yolo/exdark-yolo-green/train/images/2015_00002.png'),
     #               Path('../../datasets/exdark-yolo/exdark-yolo-green/train/labels/2015_00002.txt'))
-    augment_yolo_dataset(Path('../../datasets/exdark-yolo/exdark-yolo-caronly'))
+    # augment_yolo_dataset(Path('../../datasets/exdark-yolo/exdark-yolo-caronly'))
 
 
 if __name__ == "__main__":
