@@ -98,7 +98,10 @@ def dump_yolo_bboxes(label_pth: Path, class_ids: list[int], bboxes: list[tuple])
     label_pth.open(mode='w', encoding='utf-8').writelines(yolo_lines)
 
 
+def main():
+    exdark2yolo(exdark_pth=Path("../datasets/exdark"),
+                yolo_pth=Path("../datasets/exdark-yolo"))
+
+
 if __name__ == "__main__":
-    # exdark2yolo(exdark_pth=Path("../datasets/exdark"),
-    #              yolo_pth=Path("../datasets/exdark-yolo"))
-    get_yolo_labels(Path('../datasets/exdark-yolo/exdark-yolo-green/train/labels/2015_00074.txt'))
+    main()
