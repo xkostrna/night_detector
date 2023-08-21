@@ -9,16 +9,16 @@ import albumentations
 from visualize import visualize_yolo_bboxes
 from src.utils import dump_yolo_bboxes, get_yolo_labels
 
-TRANSFORMATOR = albumentations.Compose(transforms=[albumentations.HorizontalFlip(p=0.5),
-                                                   albumentations.ShiftScaleRotate(p=0.5),
-                                                   albumentations.RGBShift(r_shift_limit=30,
-                                                                           g_shift_limit=30,
-                                                                           b_shift_limit=30, p=0.3)],
-                                       bbox_params=albumentations.BboxParams(format='yolo',
-                                                                             label_fields=['category_ids']))
+TRANSFORMATOR_1 = albumentations.Compose(transforms=[albumentations.HorizontalFlip(p=1),
+                                                     albumentations.ShiftScaleRotate(p=1),
+                                                     albumentations.RGBShift(r_shift_limit=30,
+                                                                             g_shift_limit=30,
+                                                                             b_shift_limit=30, p=1)],
+                                         bbox_params=albumentations.BboxParams(format='yolo',
+                                                                               label_fields=['category_ids']))
 
-TRANSFORMATOR_2 = albumentations.Compose(transforms=[albumentations.VerticalFlip(p=0.5),
-                                                     albumentations.ShiftScaleRotate(p=0.5)],
+TRANSFORMATOR_2 = albumentations.Compose(transforms=[albumentations.VerticalFlip(p=1),
+                                                     albumentations.ShiftScaleRotate(p=1)],
                                          bbox_params=albumentations.BboxParams(format='yolo',
                                                                                label_fields=['category_ids']))
 
@@ -84,28 +84,24 @@ def filter_yolo_classes(label_pth: Path, class_filter: Union[list[int], None] = 
 
 
 def augment_image(image_pth: Path, label_pth: Path) -> (numpy.ndarray, list[int], list):
-    global TRANSFORMATOR, TRANSFORMATOR_2
+    """Use albumentations Transformator to augment image and return transformed image, class ids and bboxes."""
+    global TRANSFORMATOR_1, TRANSFORMATOR_2
     image = imread(str(image_pth))
     class_ids, bboxes = get_yolo_labels(label_pth=label_pth)
-    transformed = TRANSFORMATOR_2(image=image, bboxes=bboxes, category_ids=class_ids)
+    transformed = TRANSFORMATOR_1(image=image, bboxes=bboxes, category_ids=class_ids)
     return transformed['image'], class_ids, transformed['bboxes']
 
 
 def augment_yolo_dataset(dataset_path: Path) -> None:
-    images, labels = [], []
-    for image_set in dataset_path.iterdir():
-        if not image_set.is_dir():
-            continue
-        for image, label in zip((image_set / 'images').iterdir(), (image_set / 'labels').iterdir()):
-            images.append(image)
-            labels.append(label)
+    """Iterate through train set of dataset, augment every image and save with according labels."""
+    images = dataset_path / 'train' / 'images'
+    labels = dataset_path / 'train' / 'labels'
 
-    dataset_size = len(images)
-    for idx, (img_pth, label_pth) in enumerate(zip(images, labels)):
+    for idx, (img_pth, label_pth) in enumerate(zip(images.iterdir(), labels.iterdir())):
         try:
             image, class_ids, bboxes = augment_image(img_pth, label_pth)
-            new_image_pth = img_pth.with_name(f'{dataset_size + idx}.jpg')
-            new_label_pth = label_pth.with_name(f'{dataset_size + idx}.txt')
+            new_image_pth = img_pth.with_name(f'{idx}.jpg')
+            new_label_pth = label_pth.with_name(f'{idx}.txt')
             imwrite(filename=str(new_image_pth), img=image)
             dump_yolo_bboxes(new_label_pth, class_ids, bboxes)
         except ValueError as e:
@@ -114,14 +110,15 @@ def augment_yolo_dataset(dataset_path: Path) -> None:
 
 
 def main():
-    # class_filter = [2, 4, 6, 7]
+    # class_filter = [4]
     # create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark-yolo'),
-    #                          dest_pth=Path('../../datasets/exdark-yolo/exdark-yolo-green'),
+    #                          dest_pth=Path('../../datasets/exdark-yolo/exdark-yolo-caronly'),
     #                          class_list_pth=Path('imageclasslist.txt'),
     #                          class_filter=class_filter)
+
     # augment_image(Path('../../datasets/exdark-yolo/exdark-yolo-green/train/images/2015_00002.png'),
     #               Path('../../datasets/exdark-yolo/exdark-yolo-green/train/labels/2015_00002.txt'))
-    augment_yolo_dataset(Path('../../datasets/exdark-yolo/exdark-yolo-green'))
+    augment_yolo_dataset(Path('../../datasets/exdark-yolo/exdark-yolo-caronly'))
 
 
 if __name__ == "__main__":
