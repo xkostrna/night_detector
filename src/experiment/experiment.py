@@ -1,24 +1,18 @@
 from pathlib import Path
 from shutil import copy
 from typing import Union
+from collections import defaultdict
 
-import numpy
+from numpy import ndarray
 from cv2 import imread, imwrite
 import albumentations
 
-from visualize import visualize_yolo_bboxes
 from src.utils import dump_yolo_bboxes, get_yolo_labels
 
-TRANSFORMATOR_1 = albumentations.Compose(transforms=[albumentations.HorizontalFlip(p=1),
-                                                     albumentations.ShiftScaleRotate(p=1),
+TRANSFORMATOR_1 = albumentations.Compose(transforms=[albumentations.ShiftScaleRotate(p=1),
                                                      albumentations.RGBShift(r_shift_limit=30,
                                                                              g_shift_limit=30,
                                                                              b_shift_limit=30, p=1)],
-                                         bbox_params=albumentations.BboxParams(format='yolo',
-                                                                               label_fields=['category_ids']))
-
-TRANSFORMATOR_2 = albumentations.Compose(transforms=[albumentations.VerticalFlip(p=1),
-                                                     albumentations.ShiftScaleRotate(p=1)],
                                          bbox_params=albumentations.BboxParams(format='yolo',
                                                                                label_fields=['category_ids']))
 
@@ -34,7 +28,6 @@ def create_dataset_by_exdark(exdark_pth: Path,
     :param class_list_pth: path to imageclasslist.txt
     :param class_filter: optional parameter, can be used to filter out classes of the dataset
     """
-    lines = class_list_pth.open(mode='r', encoding='utf-8').readlines()
     images = exdark_pth / 'images'
     labels = exdark_pth / 'labels'
 
@@ -43,11 +36,14 @@ def create_dataset_by_exdark(exdark_pth: Path,
                   3: dest_pth / 'test'}
 
     # every array indexing in this loop is defined by exdark imageclasslist.txt
+    lines = class_list_pth.open(mode='r', encoding='utf-8').readlines()
     for line in lines:
         parts = line.split(' ')
         img_pth = images / parts[0]
-        label_pth = (labels / parts[0]).with_suffix('.txt')
+        if not img_pth.exists():
+            continue
 
+        label_pth = (labels / parts[0]).with_suffix('.txt')
         dest = img_to_set[int(parts[4])]
 
         if not class_filter:
@@ -85,9 +81,9 @@ def filter_yolo_classes(label_pth: Path, class_filter: list[int]) -> tuple:
     return class_ids, bboxes
 
 
-def augment_image(image_pth: Path, label_pth: Path) -> (numpy.ndarray, list[int], list):
+def augment_image(image_pth: Path, label_pth: Path) -> (ndarray, list[int], list):
     """Use albumentations Transformator to augment image and return transformed image, class ids and bboxes."""
-    global TRANSFORMATOR_1, TRANSFORMATOR_2
+    global TRANSFORMATOR_1
     image = imread(str(image_pth))
     class_ids, bboxes = get_yolo_labels(label_pth=label_pth)
     transformed = TRANSFORMATOR_1(image=image, bboxes=bboxes, category_ids=class_ids)
@@ -111,16 +107,41 @@ def augment_yolo_dataset(dataset_path: Path) -> None:
             continue
 
 
+def balance_dataset(old: Path, new: Path, instances_limit: int):
+    """This function creates new dataset from old by decreasing all objects instances down to limit."""
+    class_counter = defaultdict(int)
+    for img_pth, label_pth in zip((old / 'images').iterdir(), (old / 'labels').iterdir()):
+        class_ids, bboxes = get_yolo_labels(label_pth)
+        new_ids, new_bboxes = [], []
+        for class_id, bbox in zip(class_ids, bboxes):
+            if class_counter[class_id] >= instances_limit:
+                continue
+            class_counter[class_id] += 1
+            new_ids.append(class_id)
+            new_bboxes.append(bbox)
+
+        if len(new_ids) == 0:
+            continue
+
+        copy(img_pth, new / 'images')
+        dump_yolo_bboxes(new / 'labels' / label_pth.name, new_ids, new_bboxes)
+    print('Balancing finished')
+
+
 def main():
-    class_filter = [4]
-    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark-yolo'),
-                             dest_pth=Path('../../datasets/exdark-yolo/exdark-yolo-caronly'),
-                             class_list_pth=Path('imageclasslist.txt'),
-                             class_filter=class_filter)
+    # class_filter = [4]
+    # create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark-yolo'),
+    #                          dest_pth=Path('../../datasets/exdark-yolo/exdark-yolo-caronly'),
+    #                          class_list_pth=Path('imageclasslist.txt'),
+    #                          class_filter=class_filter)
 
     # augment_image(Path('../../datasets/exdark-yolo/exdark-yolo-green/train/images/2015_00002.png'),
     #               Path('../../datasets/exdark-yolo/exdark-yolo-green/train/labels/2015_00002.txt'))
     # augment_yolo_dataset(Path('../../datasets/exdark-yolo/exdark-yolo-caronly'))
+
+    balance_dataset(old=Path('../../datasets/exdark-yolo'),
+                    new=Path('../../datasets/exdark-yolo/exdark-yolo-balanced'),
+                    instances_limit=703)
 
 
 if __name__ == "__main__":
