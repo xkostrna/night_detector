@@ -9,12 +9,15 @@ import albumentations
 
 from src.utils import dump_yolo_bboxes, get_yolo_labels
 
-TRANSFORMATOR_1 = albumentations.Compose(transforms=[albumentations.ShiftScaleRotate(p=1),
-                                                     albumentations.RGBShift(r_shift_limit=30,
-                                                                             g_shift_limit=30,
-                                                                             b_shift_limit=30, p=1)],
-                                         bbox_params=albumentations.BboxParams(format='yolo',
-                                                                               label_fields=['category_ids']))
+
+TRANSFORMATOR_1 = albumentations.Compose(
+    transforms=[albumentations.RandomBrightnessContrast(brightness_limit=(0.1, 0.2),
+                                                        contrast_limit=(0.1, 0.15),
+                                                        brightness_by_max=True,
+                                                        p=1)],
+    bbox_params=albumentations.BboxParams(format='yolo',
+                                          label_fields=['category_ids'])
+)
 
 
 def create_dataset_by_exdark(exdark_pth: Path,
@@ -130,18 +133,18 @@ def balance_dataset(old: Path, new: Path, instances_limit: int):
 
 def main():
     # class_filter = [4]
-    # create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark-yolo'),
-    #                          dest_pth=Path('../../datasets/exdark-yolo/exdark-yolo-caronly'),
-    #                          class_list_pth=Path('imageclasslist.txt'),
-    #                          class_filter=class_filter)
+    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark/undivided/default'),
+                             dest_pth=Path('../../datasets/exdark/yolo/experiments'),
+                             class_list_pth=Path('imageclasslist.txt'),
+                             class_filter=None)
 
     # augment_image(Path('../../datasets/exdark-yolo/exdark-yolo-green/train/images/2015_00002.png'),
     #               Path('../../datasets/exdark-yolo/exdark-yolo-green/train/labels/2015_00002.txt'))
-    # augment_yolo_dataset(Path('../../datasets/exdark-yolo/exdark-yolo-caronly'))
+    # augment_yolo_dataset(Path('../../datasets/exdark/yolo/balanced'))
 
-    balance_dataset(old=Path('../../datasets/exdark-yolo'),
-                    new=Path('../../datasets/exdark-yolo/exdark-yolo-balanced'),
-                    instances_limit=703)
+    # balance_dataset(old=Path('../../datasets/exdark-yolo'),
+    #                 new=Path('../../datasets/exdark-yolo/exdark-yolo-balanced'),
+    #                 instances_limit=703)
 
 
 if __name__ == "__main__":
