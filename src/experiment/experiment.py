@@ -133,8 +133,8 @@ def balance_dataset(old: Path, new: Path, instances_limit: int):
 
 def main():
     # class_filter = [4]
-    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark/undivided/default'),
-                             dest_pth=Path('../../datasets/exdark/yolo/experiments'),
+    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark/undivided/enlighten'),
+                             dest_pth=Path('../../datasets/exdark/yolo/enlighten'),
                              class_list_pth=Path('imageclasslist.txt'),
                              class_filter=None)
 
