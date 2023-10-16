@@ -14,8 +14,17 @@ def yolo_health_check(pth: Path):
     print(sorted(class_counter.items()))
 
 
+def is_ok(dataset_pth: Path):
+    """Check if every image has label."""
+    for img_set in [pth for pth in dataset_pth.iterdir() if pth.is_dir()]:
+        for img, label in zip((img_set / 'images').iterdir(), (img_set / 'labels').iterdir()):
+            if img.stem != label.stem:
+                print(f"Img name {img.stem} doesn't equal label name {label.stem}")
+
+
 def main():
-    yolo_health_check(Path('../../datasets/exdark/undivided/default'))
+    # yolo_health_check(Path('../../datasets/exdark/undivided/default'))
+    is_ok(Path('../../datasets/exdark/yolo/exdark640'))
 
 
 if __name__ == "__main__":

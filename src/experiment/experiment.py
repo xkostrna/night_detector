@@ -44,7 +44,7 @@ def create_dataset_by_exdark(exdark_pth: Path,
         parts = line.split(' ')
         img_pth = images / parts[0]
         if not img_pth.exists():
-            continue
+            img_pth = img_pth.with_suffix('.jpg')
 
         label_pth = (labels / parts[0]).with_suffix('.txt')
         dest = img_to_set[int(parts[4])]
@@ -133,8 +133,8 @@ def balance_dataset(old: Path, new: Path, instances_limit: int):
 
 def main():
     # class_filter = [4]
-    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark/undivided/enlighten'),
-                             dest_pth=Path('../../datasets/exdark/yolo/enlighten'),
+    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark/undivided/enlighten640'),
+                             dest_pth=Path('../../datasets/exdark/yolo/exdark-enlighten-640'),
                              class_list_pth=Path('imageclasslist.txt'),
                              class_filter=None)
 

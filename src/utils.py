@@ -4,7 +4,7 @@ from typing import Union
 from pybboxes import convert_bbox
 import cv2
 
-YOLO_SIZE = 416
+YOLO_SIZE = 640
 BBOX_SIZE = 4
 
 
@@ -99,8 +99,8 @@ def dump_yolo_bboxes(label_pth: Path, class_ids: list[int], bboxes: list[tuple])
 
 
 def main():
-    exdark2yolo(exdark_pth=Path("../datasets/exdark"),
-                yolo_pth=Path("../datasets/exdark-yolo"))
+    exdark2yolo(exdark_pth=Path("../datasets/exdark/original"),
+                yolo_pth=Path("../datasets/exdark/undivided/default640"))
 
 
 if __name__ == "__main__":
