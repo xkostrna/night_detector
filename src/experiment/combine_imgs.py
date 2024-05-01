@@ -2,6 +2,7 @@ from pathlib import Path
 import cv2
 from PIL import Image
 
+# EXDARK SPECIFIC !
 CLASS_ID_TO_NAME = {0: "Bicycle",
                     1: "Boat",
                     2: "Bottle",

@@ -44,7 +44,8 @@ def create_dataset_by_exdark(exdark_pth: Path,
         parts = line.split(' ')
         img_pth = images / parts[0]
         if not img_pth.exists():
-            img_pth = img_pth.with_suffix('.jpg')
+            # img_pth = img_pth.with_suffix('.jpg')
+            continue
 
         label_pth = (labels / parts[0]).with_suffix('.txt')
         dest = img_to_set[int(parts[4])]
@@ -74,9 +75,14 @@ def filter_yolo_classes(label_pth: Path, class_filter: list[int]) -> tuple:
         parts = line.strip().split(' ')
         class_id, *bbox = parts
         class_id = int(class_id)
-        if class_id in class_filter:
-            class_ids.append(class_filter.index(class_id))
-            bboxes.append(bbox)
+        # with this condition we completely skips images where was previously some object
+        if class_id not in class_filter:
+            return -1, -1
+        # if class_id in class_filter:
+            # if we want whole new dataset we have to use index(class_id)
+            # if we want to create dataset to augment other dataset then it must be exact class_id
+        class_ids.append(class_id)
+        bboxes.append(bbox)
 
     if len(class_ids) == 0 or len(bboxes) == 0:
         return -1, -1
@@ -132,11 +138,15 @@ def balance_dataset(old: Path, new: Path, instances_limit: int):
 
 
 def main():
+    # Bicycle(1), Boat(2), Bottle(3), Bus(4), Car(5), Cat(6),
+    # Chair(7), Cup(8), Dog(9), Motorbike(10), People(11), Table(12)
     # class_filter = [4]
-    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark/undivided/enlighten640'),
-                             dest_pth=Path('../../datasets/exdark/yolo/exdark-enlighten-640'),
-                             class_list_pth=Path('imageclasslist.txt'),
-                             class_filter=None)
+    create_dataset_by_exdark(exdark_pth=Path('../../datasets/exdark/undivided/balanced640'),
+                             dest_pth=Path('../../datasets/exdark/yolo/exdark640balanced'),
+                             class_list_pth=Path('imageclasslist.txt'))
+    # balance_dataset(old=Path("../../datasets/exdark/undivided/default640"),
+    #                 new=Path("../../datasets/exdark/undivided/balanced640"),
+    #                 instances_limit=706)
 
     # augment_image(Path('../../datasets/exdark-yolo/exdark-yolo-green/train/images/2015_00002.png'),
     #               Path('../../datasets/exdark-yolo/exdark-yolo-green/train/labels/2015_00002.txt'))
